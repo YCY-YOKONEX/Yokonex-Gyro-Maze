@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="役次元迷宫挑战应用图标">
+  <rect width="1024" height="1024" rx="224" fill="#08111d"/>
+  <rect x="40" y="40" width="944" height="944" rx="190" fill="#101e32" stroke="#2a4967" stroke-width="8"/>
+  <path d="M188 194H516V364H278V690H710V512H850" fill="none" stroke="#65e5e4" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M278 364H188M710 690V826H850" fill="none" stroke="#2e93ad" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="764" cy="298" r="108" fill="#020711" opacity=".58"/>
+  <circle cx="748" cy="282" r="92" fill="#ffb547" stroke="#ffe0a3" stroke-width="10"/>
+  <circle cx="718" cy="250" r="26" fill="#fff4d6" opacity=".9"/>
+  <circle cx="748" cy="282" r="126" fill="none" stroke="#ffb547" stroke-width="8" opacity=".35"/>
+</svg>

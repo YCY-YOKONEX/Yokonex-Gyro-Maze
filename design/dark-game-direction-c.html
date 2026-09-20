@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gyro Maze · 暗黑游戏方向 C</title>
+  <!--
+    方向假设：游戏更像一次安静、精确的月面任务，减少面板，把注意力交还给迷宫。
+    布局选择：全屏深空背景 + 中央迷宫 + 少量玻璃质感控件，突出空间感和专注感。
+    未决项：正式版可以把地图主题换成月面、深海或熔岩三套环境。
+  -->
+  <style>
+    :root{--bg:#080b10;--ink:#edf3f3;--muted:#83939a;--line:#29363e;--ice:#a7e8e4;--blue:#5db5c6;--warm:#e7b66c;--path:#1a2931;--wall:#091017}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman",serif}button{border:1px solid var(--line);color:var(--ink);background:rgba(8,11,16,.56);font:inherit;cursor:pointer;transition:.25s ease}button:hover{border-color:var(--ice);color:var(--ice)}
+    .page{min-height:100vh;position:relative;overflow:hidden;padding:34px clamp(18px,5vw,72px) 30px;display:grid;grid-template-rows:auto 1fr auto}.page:before{content:"";position:absolute;inset:-20%;background:radial-gradient(ellipse at 50% 46%,rgba(93,181,198,.14),transparent 43%);pointer-events:none}.page:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 0 48%,rgba(167,232,228,.05) 49%,transparent 50%),linear-gradient(20deg,transparent 0 66%,rgba(167,232,228,.04) 67%,transparent 68%);opacity:.55}
+    header,main,footer{position:relative;z-index:1}.header{display:flex;justify-content:space-between;align-items:flex-start}.eyebrow{font:10px Consolas,monospace;letter-spacing:.25em;color:var(--ice);text-transform:uppercase}.title{font-size:clamp(29px,4vw,52px);font-weight:400;line-height:1.02;margin:10px 0 0;letter-spacing:-.03em}.title em{font-style:italic;color:var(--warm)}.header-right{display:flex;gap:9px}.header-right button{width:40px;height:40px;border-radius:50%;font-family:Arial,sans-serif}
+    main{display:grid;place-items:center;padding:22px 0}.focus{width:min(74vh,620px);aspect-ratio:1;position:relative;display:grid;place-items:center}.focus:before{content:"";position:absolute;inset:-22px;border:1px solid rgba(167,232,228,.24);border-radius:50%;box-shadow:0 0 80px rgba(93,181,198,.08)}.focus:after{content:"";position:absolute;inset:-42px;border:1px solid rgba(167,232,228,.1);border-radius:50%}.maze{width:100%;aspect-ratio:1;display:grid;grid-template-columns:repeat(13,1fr);gap:4px;padding:13px;background:#101b22;border:1px solid #506a72;box-shadow:0 0 45px rgba(93,181,198,.17)}.cell{position:relative;background:var(--wall)}.cell.path,.cell.start,.cell.goal{background:var(--path)}.cell.start:after,.cell.goal:after{content:"";position:absolute;inset:26%;border-radius:50%}.cell.start:after{background:var(--ice);box-shadow:0 0 17px var(--ice)}.cell.goal:after{background:var(--warm);box-shadow:0 0 17px var(--warm)}.ball{position:absolute;left:15.4%;top:15.4%;width:21px;height:21px;border-radius:50%;background:#f4ffff;border:2px solid var(--ice);box-shadow:0 0 24px var(--ice);transform:translate(-50%,-50%)}.orb-label{position:absolute;bottom:-32px;left:50%;transform:translateX(-50%);white-space:nowrap;color:var(--muted);font:10px Consolas,monospace;letter-spacing:.18em}
+    .metrics{display:flex;justify-content:center;gap:clamp(18px,5vw,80px);padding-top:20px}.metric{text-align:center;min-width:118px}.metric .key{font:10px Consolas,monospace;color:var(--muted);letter-spacing:.14em}.metric .value{margin-top:7px;font:24px Consolas,monospace;color:var(--ink)}.metric .value.accent{color:var(--ice)}.metric .sub{font:11px Consolas,monospace;color:var(--muted);margin-top:3px}
+    footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:16px;color:var(--muted);font:11px Consolas,monospace}.device{display:flex;align-items:center;gap:9px}.device i{width:8px;height:8px;border-radius:50%;background:var(--ice);box-shadow:0 0 11px var(--ice)}.footer-actions{display:flex;gap:8px}.footer-actions button{padding:9px 15px;border-radius:18px}.footer-actions .primary{color:#061013;background:var(--ice);border-color:var(--ice)}
+    @media(max-width:620px){.page{padding:22px 17px 20px}.title{font-size:30px}.header-right button{width:34px;height:34px}.focus{width:78vw}.metrics{gap:8px}.metric{min-width:0;flex:1}.metric .value{font-size:19px}.footer{gap:12px;align-items:flex-start;flex-direction:column}.footer-actions{width:100%}.footer-actions button{flex:1}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header"><div><div class="eyebrow">LUNAR NAVIGATION / OFFLINE RUN</div><h1 class="title">潮汐<em>回廊</em></h1></div><div class="header-right"><button aria-label="地图">⌘</button><button aria-label="暂停">Ⅱ</button></div></header>
+    <main><div class="focus"><div class="maze" id="maze"></div><div class="ball"></div><div class="orb-label">TILT TO MOVE / KEEP THE CORE ALIVE</div></div></main>
+    <section class="metrics"><div class="metric"><div class="key">TIME</div><div class="value">02:18</div><div class="sub">CURRENT RUN</div></div><div class="metric"><div class="key">IMPACT</div><div class="value accent">120</div><div class="sub">MAX 180</div></div><div class="metric"><div class="key">DEVICE</div><div class="value" style="font-size:17px">V2</div><div class="sub">A / B SYNC</div></div></section>
+    <footer><div class="device"><i></i> YYC-DJ-V2 CONNECTED</div><div class="footer-actions"><button>选择地图</button><button>校准</button><button class="primary">继续游戏</button></div></footer>
+  </main>
+  <script>
+    const layout=["#############","#S   #     G#","# # ### ### #","# #     #   #","# ##### # # #","#     #   #","##### ##### #","#   #       #","# # # ##### #","# # #     # #","# ### ### # #","#           #","#############"];
+    const maze=document.querySelector('#maze');layout.forEach(row=>[...row].forEach(cell=>{const el=document.createElement('div');el.className=cell==='#'?'cell wall':cell==='S'?'cell start':cell==='G'?'cell goal':'cell path';maze.appendChild(el)}));
+  </script>
+</body>
+</html>

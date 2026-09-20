@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gyro Maze · 暗黑游戏方向 A</title>
+  <!--
+    方向假设：玩家在低光环境下快速操作，重点是危险感、碰墙反馈和强度状态。
+    布局选择：迷宫占据第一视觉中心，HUD 像竞技游戏的状态栏，操作区固定在底部。
+    未决项：正式版是否加入音效和震动反馈，当前只保留可替换的状态位。
+  -->
+  <style>
+    :root { --ink:#f8f1df; --muted:#a59b87; --bg:#11100e; --panel:#1c1a16; --line:#40382d; --hot:#f2b84b; --danger:#e56043; --path:#29251e; --wall:#0b0b0a; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:var(--bg); font-family:"Trebuchet MS", "Segoe UI", sans-serif; letter-spacing:.01em; }
+    body:before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.08; background-image:repeating-linear-gradient(0deg, transparent 0 3px, #f2b84b 4px 4px); mix-blend-mode:screen; }
+    .screen { width:min(1180px,100%); min-height:100vh; margin:auto; padding:22px 26px 18px; display:grid; grid-template-rows:auto 1fr auto; gap:16px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:13px; }
+    .brand { display:flex; align-items:baseline; gap:10px; }
+    .brand strong { font-size:20px; letter-spacing:.16em; text-transform:uppercase; }
+    .brand span { color:var(--muted); font-size:11px; letter-spacing:.18em; }
+    .top-actions { display:flex; align-items:center; gap:10px; }
+    button { border:1px solid var(--line); color:var(--ink); background:transparent; padding:9px 13px; font:inherit; cursor:pointer; transition:.2s ease; }
+    button:hover { border-color:var(--hot); color:var(--hot); transform:translateY(-1px); }
+    .icon { width:38px; height:38px; padding:0; font-size:18px; }
+    .main { display:grid; grid-template-columns:minmax(0,1fr) 250px; gap:18px; align-items:center; }
+    .arena { position:relative; min-height:560px; display:grid; place-items:center; background:#15130f; border:1px solid var(--line); overflow:hidden; }
+    .arena:before,.arena:after { content:""; position:absolute; width:30px; height:30px; border-color:var(--hot); border-style:solid; opacity:.75; }
+    .arena:before { top:15px; left:15px; border-width:2px 0 0 2px; }
+    .arena:after { right:15px; bottom:15px; border-width:0 2px 2px 0; }
+    .arena-label { position:absolute; left:18px; top:16px; color:var(--hot); font:11px Consolas,monospace; letter-spacing:.18em; }
+    .maze { width:min(69vh,520px); aspect-ratio:1; display:grid; grid-template-columns:repeat(13,1fr); gap:3px; padding:10px; background:#201c16; border:1px solid #5c4b32; box-shadow:0 0 0 8px #0d0c0a, 0 18px 50px #000; }
+    .cell { position:relative; background:var(--wall); }
+    .cell.path,.cell.start,.cell.goal { background:var(--path); }
+    .cell.start:after,.cell.goal:after { content:""; position:absolute; inset:25%; border-radius:50%; }
+    .cell.start:after { background:var(--hot); box-shadow:0 0 16px var(--hot); }
+    .cell.goal:after { background:var(--danger); box-shadow:0 0 18px var(--danger); }
+    .ball { position:absolute; width:18px; height:18px; left:16.5%; top:16.5%; background:#fff1c4; border:3px solid var(--hot); border-radius:50%; box-shadow:0 0 18px var(--hot); transform:translate(-50%,-50%); pointer-events:none; }
+    .side { display:flex; flex-direction:column; gap:12px; }
+    .panel { background:var(--panel); border:1px solid var(--line); padding:15px; }
+    .panel h2 { margin:0 0 13px; font-size:11px; letter-spacing:.2em; color:var(--hot); text-transform:uppercase; }
+    .readout { display:flex; justify-content:space-between; align-items:baseline; padding:10px 0; border-top:1px solid #302a21; }
+    .readout:first-of-type { border-top:0; padding-top:0; }
+    .readout label { color:var(--muted); font-size:12px; }
+    .readout b { font:20px Consolas,monospace; }
+    .status { display:flex; align-items:center; gap:8px; color:#bce9a4; font-size:12px; }
+    .status i { width:8px; height:8px; border-radius:50%; background:#8ce66a; box-shadow:0 0 12px #8ce66a; }
+    .intensity { height:5px; background:#342c20; margin-top:9px; }
+    .intensity span { display:block; width:67%; height:100%; background:var(--hot); box-shadow:0 0 12px var(--hot); }
+    .map-button { width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center; }
+    .bottom { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .hint { color:var(--muted); font-size:12px; }
+    .controls { display:flex; gap:8px; }
+    .primary { background:var(--hot); color:#17120a; border-color:var(--hot); font-weight:700; }
+    .primary:hover { color:#17120a; background:#ffd078; }
+    @media (max-width:780px) { .screen { padding:15px; gap:12px; } .main { grid-template-columns:1fr; } .arena { min-height:calc(100vw - 30px); } .side { display:grid; grid-template-columns:repeat(2,1fr); } .side .panel:last-child { grid-column:1/-1; } .bottom { align-items:flex-start; flex-direction:column; } }
+  </style>
+</head>
+<body>
+  <main class="screen">
+    <header class="topbar">
+      <div class="brand"><strong>GYRO MAZE</strong><span>FIELD TEST 01</span></div>
+      <div class="top-actions"><button class="icon" aria-label="地图">▦</button><button class="icon" aria-label="暂停">Ⅱ</button></div>
+    </header>
+    <section class="main">
+      <div class="arena"><div class="arena-label">SECTOR / TIDE CORRIDOR</div><div class="maze" id="maze"></div><div class="ball"></div></div>
+      <aside class="side">
+        <div class="panel"><h2>Run status</h2><div class="readout"><label>TIME</label><b>02:18</b></div><div class="readout"><label>MAP</label><b style="font-size:15px">潮汐回廊</b></div><div class="status"><i></i>YYC-DJ-V2 ONLINE</div></div>
+        <div class="panel"><h2>Impact output</h2><div class="readout"><label>INTENSITY</label><b>120<span style="font-size:12px;color:var(--muted)"> / 180</span></b></div><div class="intensity"><span></span></div><div class="readout"><label>FREQUENCY</label><b>68Hz</b></div></div>
+        <div class="panel"><button class="map-button"><span>选择地图</span><span>→</span></button></div>
+      </aside>
+    </section>
+    <footer class="bottom"><div class="hint">倾斜手机控制 · 撞墙时输出增强 · 校准：长按设备按钮</div><div class="controls"><button>重新开始</button><button class="primary">继续游戏</button></div></footer>
+  </main>
+  <script>
+    const layout=["#############","#S   #     G#","# # ### ### #","# #     #   #","# ##### # # #","#     #   # #","##### ##### #","#   #       #","# # # ##### #","# # #     # #","# ### ### # #","#           #","#############"];
+    const maze=document.querySelector('#maze');
+    layout.forEach(row=>[...row].forEach(cell=>{const el=document.createElement('div'); el.className=cell==='#'?'cell wall':cell==='S'?'cell start':cell==='G'?'cell goal':'cell path'; maze.appendChild(el);}));
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+name: gyro_maze
+description: 役次元-迷宫挑战：使用倾斜控制滚珠穿越迷宫。
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flame: ^1.18.0
+  flutter_blue_plus: ^1.35.5
+  sensors_plus: ^6.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
